@@ -1,3 +1,5 @@
+# command_network    [![Pub Version](https://img.shields.io/pub/v/command_network)](https://pub.dev/packages/command_network)
+
 ## What
 command_network is a high level request util based on [dio](https://pub.dev/packages/dio), inspired by [YTKNetowrk](https://github.com/yuantiku/YTKNetwork).
 
