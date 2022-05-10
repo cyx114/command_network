@@ -65,6 +65,28 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  void _batchRequest() async {
+    List<BaseRequest> requestList = [
+      LoginApi('username', 'password'),
+      GetUserInfoApi(),
+      GetDeviceVersionApi('192.168.10.10',
+          username: 'username', password: 'password')
+    ];
+    BatchRequest batchRequest = BatchRequest(requestList);
+    Result batchResult = await batchRequest.start();
+    if (batchResult.isSuccess) {
+      for (BaseRequest request in requestList) {
+        print('[Result]success: ${request.result.data}');
+      }
+    } else {
+      for (BaseRequest request in requestList) {
+        if (!request.result.isSuccess) {
+          print('[Result]failed: ${request.result.error}');
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -92,6 +114,12 @@ class _MyHomePageState extends State<MyHomePage> {
               child: ElevatedButton(
                   onPressed: _requestWithAuthTypeDigestOrBasic,
                   child: const Text('AuthTypeDigestOrBasic')),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: ElevatedButton(
+                  onPressed: _batchRequest,
+                  child: const Text('BatchRequest')),
             ),
           ],
         ),

@@ -15,11 +15,12 @@ class NetworkAgent {
   NetworkAgent._internal();
 
   Future<Result> addRequest(BaseRequest request) async {
+    Result result;
     try {
       Response response = await sendRequest(request,
           interceptors: _getNeededInterceptors(request));
       request.response = response;
-      return Result(true, data: response.data);
+      result = Result(true, data: response.data);
     } on DioError catch (error) {
       CmdError cmdError;
       if (error.error is CmdError) {
@@ -34,7 +35,9 @@ class NetworkAgent {
       assert(true,
           'There should not be any [Exception] error when request, error: $error');
     }
-    return Result(false, error: request.error);
+    result = Result(false, error: request.error);
+    request.result = result;
+    return result;
   }
 
   void cancelRequest(BaseRequest request) {

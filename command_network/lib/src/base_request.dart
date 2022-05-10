@@ -111,6 +111,8 @@ class BaseRequest {
   // request and response
   Response? response;
   CmdError? error;
+  /// This property CAN NOT be used before request finished.
+  late final Result result;
 
   bool get cancelled => cancelToken.isCancelled;
   CancelToken cancelToken = CancelToken();
