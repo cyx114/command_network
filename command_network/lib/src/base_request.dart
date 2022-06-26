@@ -2,9 +2,12 @@ import 'dart:core';
 
 import 'package:meta/meta.dart';
 import 'package:dio/dio.dart';
+import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 
 import 'package:command_network/src/network_agent.dart';
 import 'package:command_network/src/network_config.dart';
+import 'package:command_network/src/interceptor/authentication_interceptor.dart';
+import 'package:command_network/src/interceptor/json_validate_interceptor.dart';
 
 enum CmdErrorType {
   requestError,
@@ -60,13 +63,7 @@ extension HttpRequestMethodValue on HttpRequestMethod {
   }
 }
 
-enum AuthType {
-  none,
-  basic,
-  digest,
-  basicOrDigest,
-  jwt
-}
+enum AuthType { none, basic, digest, basicOrDigest, jwt }
 
 class AuthInfo {
   AuthInfo({this.username = '', this.password = '', this.authString = ''});
@@ -76,6 +73,12 @@ class AuthInfo {
         username: username ?? this.username,
         password: password ?? this.password,
         authString: authString ?? this.authString);
+  }
+
+  void mergeWith({String? username, String? password, String? authString}) {
+    this.username = username ?? this.username;
+    this.password = password ?? this.password;
+    this.authString = authString ?? this.authString;
   }
 
   AuthInfo.none();
@@ -106,18 +109,18 @@ class Result {
   }
 }
 
-
-class BaseRequest {
+abstract class BaseRequest {
   // request and response
   Response? response;
   CmdError? error;
+
   /// This property CAN NOT be used before request finished.
   late final Result result;
 
   bool get cancelled => cancelToken.isCancelled;
   CancelToken cancelToken = CancelToken();
 
-  AuthInfo _authInfo = AuthInfo.none();
+  final AuthInfo _authInfo = AuthInfo.none();
 
   // request operation
   Future<Result> start() {
@@ -161,10 +164,10 @@ class BaseRequest {
 
   @mustCallSuper
   set authInfo(AuthInfo authInfo) {
-    _authInfo = _authInfo.copyWith(
-        username: authInfo.username,
-        password: authInfo.password,
-        authString: authInfo.authString);
+    _authInfo.mergeWith(
+        username: authInfo.username.isEmpty ? _authInfo.username : authInfo.username,
+        password: authInfo.password.isEmpty ? _authInfo.password : authInfo.password,
+        authString: authInfo.authString.isEmpty ? _authInfo.authString : authInfo.authString,);
   }
 
   /// subclass should call super and merge the data when inherit.
@@ -184,4 +187,24 @@ class BaseRequest {
   String get requestUrl {
     return '';
   }
+
+  List<Interceptor> getRequiredInterceptors() {
+    List<Interceptor> interceptors = [];
+    if (NetworkConfig().requestLogEnabled) {
+      interceptors.add(PrettyDioLogger());
+    }
+    switch (authType) {
+      case AuthType.basicOrDigest:
+      case AuthType.basic:
+      case AuthType.digest:
+        interceptors.add(DigestAuthInterceptor(this));
+        break;
+      case AuthType.none:
+      case AuthType.jwt:
+        break;
+    }
+    interceptors.add(JsonValidateInterceptor(jsonValidate));
+    return interceptors;
+  }
+
 }

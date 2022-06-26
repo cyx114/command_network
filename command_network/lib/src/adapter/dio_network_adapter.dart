@@ -1,10 +1,12 @@
-import 'package:dio/dio.dart';
+import 'dart:io';
 
-import 'package:command_network/src/base_request.dart';
+import 'package:dio/adapter.dart';
+
 import 'package:command_network/src/header_const.dart';
+import 'package:command_network/command_network.dart';
+import 'package:command_network/src/helper/authentication_helper.dart';
 
 export 'package:dio/dio.dart';
-
 
 Future<Response> sendRequest(BaseRequest request,
     {List<Interceptor>? interceptors}) async {
@@ -18,6 +20,7 @@ Future<Response> sendRequest(BaseRequest request,
   switch (requestMethod) {
     case HttpRequestMethod.get:
       {
+// print('get: options: ${buildRequestOption(request).headers}');
         response = await dio.get(buildRequestUrl(request),
             cancelToken: request.cancelToken,
             queryParameters: request.requestArgument,
@@ -59,17 +62,32 @@ String buildRequestUrl(BaseRequest request) {
 }
 
 void handleAuthorizationHeader(BaseRequest request, options) {
-  if (request.authInfo.authString.isEmpty) {
-    return;
-  }
+  // print('[Handle Header] ${request.authInfo.authString}');
   Map<String, dynamic> additionalHeader = {};
   switch (request.authType) {
     case AuthType.basic:
+      {
+        String authString = request.authInfo.authString.isEmpty
+            ? generateBasicAuthString(
+                request.authInfo.username, request.authInfo.password)
+            : request.authInfo.authString;
+        additionalHeader = {
+          HeaderConst.authorization: authString,
+        };
+      }
+      break;
     case AuthType.digest:
     case AuthType.jwt:
-      additionalHeader = {
-        HeaderConst.authorization: request.authInfo.authString,
-      };
+    case AuthType.basicOrDigest:
+      {
+        if (request.authInfo.authString.isNotEmpty) {
+          additionalHeader = {
+            HeaderConst.authorization: request.authInfo.authString,
+          };
+        }
+      }
+      break;
+    case AuthType.none:
       break;
     default:
       break;

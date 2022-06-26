@@ -1,5 +1,8 @@
 import 'dart:core';
 
+import 'package:command_network/command_network.dart';
+import 'package:flutter/foundation.dart';
+
 
 class NetworkConfig {
 
@@ -13,5 +16,7 @@ class NetworkConfig {
 
   /// Request base Url, such as 'http:www.baidu.com'. Default is empty string.
   String baseUrl = '';
+  AuthInfo authInfo = AuthInfo.none();
+  bool requestLogEnabled = kDebugMode;
 
 }
